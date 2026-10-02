@@ -189,8 +189,8 @@
       <div class="chart-wrap short"><canvas id="posChart"></canvas></div>
     </div>
     <div class="chart-box">
-      <h3>Goals per 90 by country</h3>
-      <div class="chart-sub">Non-penalty goals per 90 minutes by nationality, top 12 of the 29 countries with 20+ players. Overall rate 0.11.</div>
+      <h3>Scoring rate by country</h3>
+      <div class="chart-sub">Non-penalty goals per 90 as a ratio to the overall rate (1.0 = average). Top 12 of the 29 nationalities with 20+ players.</div>
       <div class="chart-wrap short"><canvas id="countryChart"></canvas></div>
     </div>
   </div>
@@ -304,7 +304,7 @@
   const TARGET = {"labels": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15+"], "counts": [1470, 487, 269, 146, 115, 82, 50, 40, 30, 24, 21, 8, 10, 6, 4, 24], "kept_from": 2};
   const CORR = {"labels": ["Shots on target", "Offsides", "SCA from shots", "Goal-creating actions", "Dispossessed", "Shot-creating actions", "SCA from dribbles", "SCA from live passes", "SCA from fouls drawn", "Dribbles attempted"], "r": [0.85, 0.6, 0.58, 0.5, 0.48, 0.44, 0.44, 0.42, 0.41, 0.4]};
   const POS = {"labels": ["FW", "FW/MF", "MF/FW", "MF", "MF/DF", "DF", "DF/MF", "GK"], "means": [4.25, 3.35, 2.31, 1.35, 0.83, 0.72, 0.67, 0.0], "n": [291, 214, 297, 683, 84, 854, 103, 215]};
-  const COUNTRY = {"labels": ["Nigeria", "Colombia", "Argentina", "Croatia", "Norway", "Senegal", "Austria", "Portugal", "Ivory Coast", "Cameroon", "Algeria", "Belgium"], "per90": [0.209, 0.181, 0.143, 0.141, 0.138, 0.133, 0.132, 0.128, 0.127, 0.127, 0.123, 0.123], "n": [27, 21, 69, 35, 26, 46, 35, 57, 31, 25, 27, 41], "overall": 0.112};
+  const COUNTRY = {"labels": ["Nigeria", "Colombia", "Argentina", "Croatia", "Norway", "Senegal", "Austria", "Portugal", "Ivory Coast", "Cameroon", "Algeria", "Belgium"], "per90": [0.209, 0.181, 0.143, 0.141, 0.138, 0.133, 0.132, 0.128, 0.127, 0.127, 0.123, 0.123], "n": [27, 21, 69, 35, 26, 46, 35, 57, 31, 25, 27, 41], "overall": 0.112, "ratio": [1.87, 1.62, 1.28, 1.26, 1.23, 1.19, 1.18, 1.14, 1.13, 1.13, 1.1, 1.1]};
   const TEST = [[1.946, 1.89], [1.099, 1.24], [1.792, 1.72], [1.099, 1.057], [1.946, 1.781], [1.609, 1.468], [1.792, 1.862], [1.099, 1.365], [1.609, 1.601], [2.079, 2.135], [1.609, 1.845], [1.099, 1.595], [1.609, 1.627], [1.386, 1.692], [1.099, 1.276], [2.197, 1.813], [1.386, 1.481], [2.303, 1.893], [1.099, 1.18], [1.099, 0.933], [1.609, 1.756], [2.303, 2.006], [1.609, 1.3], [2.565, 2.268], [1.099, 1.244], [1.609, 1.516], [1.609, 1.704], [1.099, 1.035], [1.386, 1.311], [2.398, 1.994], [1.386, 1.996], [1.386, 1.609], [1.386, 1.531], [2.303, 1.968], [2.303, 2.157], [1.792, 1.175], [1.099, 1.431], [2.303, 2.346], [1.792, 1.841], [1.792, 1.644], [1.946, 1.742], [1.099, 1.269]];          // [actual, predicted] in log(np_goals + 1) space, held-out test set
   const MODELS = ['Lasso', 'Linear Reg.', 'XGBoost', 'Neural Net', 'LightGBM', 'CatBoost', 'Random Forest', 'Decision Tree'];
   const RMSE = [0.249, 0.251, 0.277, 0.292, 0.297, 0.300, 0.330, 0.339];
@@ -344,11 +344,13 @@
   // ---- Goals per 90 by country ----
   new Chart(document.getElementById('countryChart'), {
     type: 'bar',
-    data: { labels: COUNTRY.labels, datasets: [{ data: COUNTRY.per90, backgroundColor: C.blue, borderRadius: 3, borderSkipped: false, maxBarThickness: 40 }] },
+    data: { labels: COUNTRY.labels, datasets: [
+      { type: 'bar', data: COUNTRY.ratio, backgroundColor: C.blue, borderRadius: 3, borderSkipped: false, maxBarThickness: 40, order: 2 },
+      { type: 'line', label: 'Overall rate', data: COUNTRY.labels.map(() => 1), borderColor: C.red, borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, order: 1 } ] },
     options: { ...base,
-      plugins: { tooltip: { callbacks: { label: i => `${i.parsed.y.toFixed(3)} per 90 (${COUNTRY.n[i.dataIndex]} players)` } } },
+      plugins: { tooltip: { filter: i => i.datasetIndex === 0, callbacks: { label: i => `${i.parsed.y.toFixed(2)}x the overall rate (${COUNTRY.per90[i.dataIndex]} per 90, ${COUNTRY.n[i.dataIndex]} players)` } } },
       scales: { x: { grid: { display: false }, ticks: { color: C.text, autoSkip: false, maxRotation: 45 } },
-                y: { title: { display: true, text: 'Non-penalty goals per 90' } } } }
+                y: { min: 0, title: { display: true, text: 'Ratio to overall rate' } } } }
   });
 
   // ---- RMSE ----
