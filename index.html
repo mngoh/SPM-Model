@@ -312,7 +312,7 @@
     <div class="card">
       <div class="label">Features</div>
       <div class="value accent4">40</div>
-      <div class="sub">after engineering</div>
+      <div class="sub">after cleaning</div>
     </div>
     <div class="card">
       <div class="label">Countries</div>
@@ -362,12 +362,12 @@
     <div class="step">
       <div class="step-num">04</div>
       <h4>Modelling</h4>
-      <p>8 models, GridSearch tuning, 80/10/10 train/val/test split, KFold CV</p>
+      <p>8 models, grid search on tree &amp; boosting models, 80/15/5 train/val/test split, k-fold CV</p>
     </div>
     <div class="step">
       <div class="step-num">05</div>
       <h4>Evaluation</h4>
-      <p>MAE, MSE, RMSE, R² — best: Linear Regression R²=0.680</p>
+      <p>MAE, MSE, RMSE, R² — best: Lasso regression R²=0.680</p>
     </div>
   </div>
 
@@ -380,8 +380,8 @@
       <canvas id="rmseChart" height="280"></canvas>
     </div>
     <div class="chart-box">
-      <h3>Linear Regression — Predicted vs Actual</h3>
-      <div class="chart-sub">Log-transformed non-penalty goals, test set (n=83) — R²=0.680, RMSE=0.249</div>
+      <h3>Lasso Regression — Predicted vs Actual</h3>
+      <div class="chart-sub">Log-transformed non-penalty goals, held-out test set (n=42) — R²=0.680, RMSE=0.249</div>
       <canvas id="scatterChart" height="280"></canvas>
     </div>
   </div>
@@ -402,20 +402,20 @@
       </thead>
       <tbody>
         <tr class="best">
-          <td>Linear Regression</td>
+          <td>Lasso (Elastic Net, L1)</td>
           <td class="num">0.198</td>
           <td class="num">0.062</td>
           <td class="num">0.249</td>
           <td class="num">0.680</td>
-          <td><span class="badge badge-best">Best</span></td>
+          <td><span class="badge badge-best">Best R²</span></td>
         </tr>
         <tr class="best">
-          <td>Elastic Net</td>
-          <td class="num">0.198</td>
-          <td class="num">0.062</td>
-          <td class="num">0.249</td>
-          <td class="num">0.680</td>
-          <td><span class="badge badge-best">Best</span></td>
+          <td>Linear Regression</td>
+          <td class="num">0.193</td>
+          <td class="num">0.063</td>
+          <td class="num">0.251</td>
+          <td class="num">0.675</td>
+          <td><span class="badge badge-best">Best MAE</span></td>
         </tr>
         <tr>
           <td>XGBoost</td>
@@ -474,15 +474,15 @@
   <div class="findings">
     <div class="finding">
       <h4>Linear models win</h4>
-      <p>Linear Regression and Elastic Net tied for best performance (R²=0.680, MAE=0.198), outperforming all tree-based and deep learning approaches on this dataset.</p>
+      <p>Lasso and plain Linear Regression beat every tree-based and deep learning model: Lasso had the best R² (0.680) and RMSE (0.249), Linear Regression the best MAE (0.193).</p>
     </div>
     <div class="finding green">
       <h4>Strong predictive signal</h4>
-      <p>Player statistics explain 68% of variance in non-penalty goals scored. The model predicts within 0.198 goals on average.</p>
+      <p>Player statistics explain 68% of the variance in log non-penalty goals on the test set, with a mean absolute error of 0.198 on the log scale.</p>
     </div>
     <div class="finding orange">
-      <h4>Ensemble models underperform</h4>
-      <p>Random Forest was the weakest model (R²=0.438). Tree-based ensembles may be overfitting or struggling with the log-transformed, PCA-reduced feature space.</p>
+      <h4>Tree models underperform</h4>
+      <p>Random Forest had the highest error (MAE=0.281) and the single Decision Tree the lowest R² (0.407). Tree-based models may be overfitting or struggling with the log-transformed, PCA-reduced feature space.</p>
     </div>
     <div class="finding purple">
       <h4>Neural network convergence</h4>
@@ -504,7 +504,7 @@
     <div class="card">
       <div class="label">Elastic Net</div>
       <div class="value" style="font-size:15px;margin-top:8px;">alpha=0.001</div>
-      <div class="sub">l1_ratio=1</div>
+      <div class="sub">l1_ratio=1 (Lasso)</div>
     </div>
     <div class="card">
       <div class="label">XGBoost</div>
@@ -536,17 +536,17 @@
 </div><!-- /container -->
 
 <footer>
-  Soccer Player Model &mdash; Martin Ngoh Capstone &mdash; github.com/mngoh/SPM_Model
+  Soccer Player Model &mdash; Martin Ngoh Capstone &mdash; github.com/mngoh/SPM-Model
 </footer>
 
 <script>
   // ---- RMSE bar chart ----
   const models = [
-    'Linear Reg.', 'Elastic Net', 'XGBoost',
+    'Lasso', 'Linear Reg.', 'XGBoost',
     'Neural Net',  'CatBoost',   'LightGBM',
     'Decision Tree', 'Random Forest',
   ];
-  const rmse    = [0.249, 0.249, 0.277, 0.292, 0.300, 0.297, 0.339, 0.330];
+  const rmse    = [0.249, 0.251, 0.277, 0.292, 0.300, 0.297, 0.339, 0.330];
   const palette = ['#2f81f7','#2f81f7','#3fb950','#f78166','#d2a8ff','#79c0ff','#e3b341','#ff7b72'];
 
   const sorted = models
@@ -583,27 +583,18 @@
   });
 
   // ---- Predicted vs Actual scatter ----
-  // Synthetic test-set representative of Linear Regression results:
-  // log(np_goals+1) space, R²=0.680, RMSE=0.249, MAE=0.198, n=83
-  function seededRand(seed) {
-    let s = seed;
-    return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
-  }
-
-  function boxMuller(r) {
-    const u = r(), v = r();
-    return Math.sqrt(-2 * Math.log(u + 1e-10)) * Math.cos(2 * Math.PI * v);
-  }
-
-  const rand = seededRand(42);
-  const pts  = [];
-  for (let i = 0; i < 83; i++) {
-    // actuals ~ realistic log-goal distribution (mean ~1.4, std ~0.7)
-    const actual = Math.max(0.1, 1.4 + boxMuller(rand) * 0.7);
-    // predictions correlated at R²=0.68, residual sd = RMSE * sqrt(1 - R²) ... simplified
-    const pred   = Math.max(0.05, actual * 0.82 + 0.25 + boxMuller(rand) * 0.249);
-    pts.push({ x: parseFloat(actual.toFixed(3)), y: parseFloat(pred.toFixed(3)) });
-  }
+  // Real held-out test set (n=42): ElasticNet(alpha=0.001, l1_ratio=1) predictions
+  // from notebooks/2_ML_Models.ipynb, log(np_goals+1) space. [actual, predicted]
+  const testSet = [
+    [1.946, 1.89], [1.099, 1.24], [1.792, 1.72], [1.099, 1.057], [1.946, 1.781], [1.609, 1.468],
+    [1.792, 1.862], [1.099, 1.365], [1.609, 1.601], [2.079, 2.135], [1.609, 1.845], [1.099, 1.595],
+    [1.609, 1.627], [1.386, 1.692], [1.099, 1.276], [2.197, 1.813], [1.386, 1.481], [2.303, 1.893],
+    [1.099, 1.18], [1.099, 0.933], [1.609, 1.756], [2.303, 2.006], [1.609, 1.3], [2.565, 2.268],
+    [1.099, 1.244], [1.609, 1.516], [1.609, 1.704], [1.099, 1.035], [1.386, 1.311], [2.398, 1.994],
+    [1.386, 1.996], [1.386, 1.609], [1.386, 1.531], [2.303, 1.968], [2.303, 2.157], [1.792, 1.175],
+    [1.099, 1.431], [2.303, 2.346], [1.792, 1.841], [1.792, 1.644], [1.946, 1.742], [1.099, 1.269]
+  ];
+  const pts = testSet.map(([x, y]) => ({ x, y }));
 
   // perfect-fit reference line
   const minV = Math.min(...pts.map(p => p.x));
