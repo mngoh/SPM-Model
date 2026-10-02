@@ -87,6 +87,7 @@
     .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     .charts.single { grid-template-columns: 1fr; }
     .section-end { margin-bottom: 40px; }
+    .note { font-size: 12px; color: var(--muted); margin: -6px 0 16px; }
     .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 22px 24px; }
     .chart-box h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
     .chart-box .chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
@@ -155,7 +156,7 @@
 
   <div class="intro">
     <div class="label">Problem statement</div>
-    <p>With the increasing quantity of player transfers and high fees, clubs must make the right choice when choosing forwards. There is little room for error when deciding on who to recruit — a mistake can cost millions. Through this player-level prediction model, clubs can reduce the time and money spent searching for players.</p>
+    <p>Transfer fees are high and a wrong signing costs millions. This model predicts a player's non-penalty goals from season statistics, so clubs can narrow the search for forwards.</p>
   </div>
 
   <!-- Dataset -->
@@ -171,21 +172,26 @@
 
   <div class="charts">
     <div class="chart-box">
-      <h3>Target — non-penalty goals per player</h3>
-      <div class="chart-sub">All 2,786 players. 1,470 scored none. The faded 0–1 bars were excluded, leaving 829 for modelling.</div>
+      <h3>Non-penalty goals per player</h3>
+      <div class="chart-sub">All 2,786 players. 1,470 scored none. Faded bars (0 and 1) were excluded, leaving 829 for modelling.</div>
       <div class="chart-wrap"><canvas id="targetChart"></canvas></div>
     </div>
     <div class="chart-box">
-      <h3>What correlates with scoring</h3>
+      <h3>Feature correlations</h3>
       <div class="chart-sub">Pearson r with non-penalty goals, 829-player modelling sample, top 10 features.</div>
       <div class="chart-wrap"><canvas id="corrChart"></canvas></div>
     </div>
   </div>
-  <div class="charts single section-end">
+  <div class="charts section-end">
     <div class="chart-box">
       <h3>Goals by position</h3>
       <div class="chart-sub">Mean non-penalty goals per player, positions with 50+ players.</div>
       <div class="chart-wrap short"><canvas id="posChart"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <h3>Goals per 90 by country</h3>
+      <div class="chart-sub">Non-penalty goals per 90 minutes by nationality, top 12 of the 29 countries with 20+ players. Overall rate 0.11.</div>
+      <div class="chart-wrap short"><canvas id="countryChart"></canvas></div>
     </div>
   </div>
 
@@ -194,29 +200,30 @@
   <div class="pipeline">
     <div class="step"><div class="step-num">01</div><h4>Data cleaning</h4><p>Deduplicate 21k records, rename 30+ columns, cap outliers at the 99.9th / 5th percentile</p></div>
     <div class="step"><div class="step-num">02</div><h4>EDA</h4><p>129 scatter plots vs goals, 129×129 correlation heatmap, descriptive statistics</p></div>
-    <div class="step"><div class="step-num">03</div><h4>Feature engineering</h4><p>Log transform, one-hot encode categoricals, PCA at 0.95 variance threshold</p></div>
+    <div class="step"><div class="step-num">03</div><h4>Feature engineering</h4><p>log(x+1) on the target and all numeric features, one-hot encode categoricals, PCA at 0.95 variance</p></div>
     <div class="step"><div class="step-num">04</div><h4>Modelling</h4><p>8 models, grid search on tree &amp; boosting models, 80/15/5 train/val/test split, k-fold CV</p></div>
-    <div class="step"><div class="step-num">05</div><h4>Evaluation</h4><p>MAE, MSE, RMSE, R² — best: Lasso regression, R² = 0.680</p></div>
+    <div class="step"><div class="step-num">05</div><h4>Evaluation</h4><p>MAE, MSE, RMSE, R². Best: Lasso, R² = 0.680</p></div>
   </div>
 
   <!-- Model performance -->
   <div class="section-title" id="performance">Model performance</div>
+  <p class="note">The target is log(non-penalty goals + 1), so every error below is on that log scale.</p>
   <div class="charts">
     <div class="chart-box">
-      <h3>RMSE — root mean squared error</h3>
+      <h3>RMSE by model</h3>
       <div class="chart-sub">Lower is better. Linear models in red.</div>
       <div class="chart-wrap"><canvas id="rmseChart"></canvas></div>
     </div>
     <div class="chart-box">
-      <h3>Lasso regression — predicted vs actual</h3>
-      <div class="chart-sub">Held-out test set (n=42), log scale. R²=0.680, RMSE=0.249.</div>
+      <h3>Predicted vs actual</h3>
+      <div class="chart-sub">Lasso, held-out test set (n=42). R²=0.680, RMSE=0.249.</div>
       <div class="chart-wrap"><canvas id="scatterChart"></canvas></div>
     </div>
   </div>
   <div class="charts section-end">
     <div class="chart-box">
-      <h3>Lasso regression — residuals</h3>
-      <div class="chart-sub">Prediction minus actual, same 42 players. No trend, so the errors look like noise.</div>
+      <h3>Residuals</h3>
+      <div class="chart-sub">Lasso, prediction minus actual for the same 42 players. No trend.</div>
       <div class="chart-wrap"><canvas id="residChart"></canvas></div>
     </div>
     <div class="chart-box">
@@ -249,13 +256,13 @@
   <!-- Key findings -->
   <div class="section-title">Key findings</div>
   <div class="findings">
-    <div class="finding"><h4>Linear models win</h4><p>Lasso and plain Linear Regression beat every tree-based and deep learning model: Lasso had the best R² (0.680) and RMSE (0.249), Linear Regression the best MAE (0.193).</p></div>
-    <div class="finding red"><h4>Strong predictive signal</h4><p>Player statistics explain 68% of the variance in log non-penalty goals on the test set, with a mean absolute error of 0.198 on the log scale.</p></div>
-    <div class="finding red"><h4>Tree models underperform</h4><p>Random Forest had the highest error (MAE=0.281) and the single Decision Tree the lowest R² (0.407). Tree-based models may be overfitting or struggling with the log-transformed, PCA-reduced feature space.</p></div>
-    <div class="finding light"><h4>Neural network convergence</h4><p>5-layer network (50→40→30→20→10) with early stopping converged at epoch 28 of 1000. Test MSE=0.0854, suggesting diminishing returns over linear approaches.</p></div>
-    <div class="finding"><h4>Data reduction</h4><p>Raw dataset reduced from 21,863 records to 2,786 unique players, then filtered to 829 players with more than 1 non-penalty goal for modelling.</p></div>
-    <div class="finding red"><h4>Cross-validation stability</h4><p>Linear Regression 5-fold CV: mean RMSE 0.279 ± 0.015 — low variance confirms the model generalises well and isn't overfitting.</p></div>
-    <div class="finding light"><h4>Limitations</h4><p>Small test set (42 players), and only players with 2+ non-penalty goals. Errors are on a log scale, so an RMSE of 0.249 is roughly a 28% multiplicative error.</p></div>
+    <div class="finding"><h4>Linear models win</h4><p>Lasso and Linear Regression beat every tree-based and neural model. Lasso had the best R² (0.680) and RMSE (0.249), Linear Regression the best MAE (0.193).</p></div>
+    <div class="finding red"><h4>Strong predictive signal</h4><p>Player statistics explain 68% of the variance in log non-penalty goals on the test set, with a mean absolute error of 0.198.</p></div>
+    <div class="finding red"><h4>Tree models underperform</h4><p>Random Forest had the highest error (MAE=0.281) and the Decision Tree the lowest R² (0.407). Trees may be overfitting the log-transformed, PCA-reduced features.</p></div>
+    <div class="finding light"><h4>Neural network convergence</h4><p>5-layer network (50→40→30→20→10) with early stopping converged at epoch 28 of 1000. Test MSE=0.0854, no gain over linear models.</p></div>
+    <div class="finding"><h4>Data reduction</h4><p>21,863 raw records reduced to 2,786 unique players, then to the 829 with 2+ non-penalty goals for modelling.</p></div>
+    <div class="finding red"><h4>Cross-validation stability</h4><p>Linear Regression 5-fold CV: mean RMSE 0.279 ± 0.015. Low variance, so the model generalises.</p></div>
+    <div class="finding light"><h4>Limitations</h4><p>Small test set (42 players), and only players with 2+ non-penalty goals. On the log scale an RMSE of 0.249 is about a 28% multiplicative error.</p></div>
   </div>
 
   <!-- Hyperparameters -->
@@ -272,7 +279,7 @@
 </div><!-- /container -->
 
 <footer>
-  <span>Soccer Prediction Model (SPM) — Martin Ngoh</span>
+  <span>Soccer Prediction Model (SPM), Martin Ngoh</span>
   <a href="https://github.com/mngoh/SPM-Model">github.com/mngoh/SPM-Model</a>
   <a href="https://martinngoh.com">martinngoh.com</a>
 </footer>
@@ -297,6 +304,7 @@
   const TARGET = {"labels": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15+"], "counts": [1470, 487, 269, 146, 115, 82, 50, 40, 30, 24, 21, 8, 10, 6, 4, 24], "kept_from": 2};
   const CORR = {"labels": ["Shots on target", "Offsides", "SCA from shots", "Goal-creating actions", "Dispossessed", "Shot-creating actions", "SCA from dribbles", "SCA from live passes", "SCA from fouls drawn", "Dribbles attempted"], "r": [0.85, 0.6, 0.58, 0.5, 0.48, 0.44, 0.44, 0.42, 0.41, 0.4]};
   const POS = {"labels": ["FW", "FW/MF", "MF/FW", "MF", "MF/DF", "DF", "DF/MF", "GK"], "means": [4.25, 3.35, 2.31, 1.35, 0.83, 0.72, 0.67, 0.0], "n": [291, 214, 297, 683, 84, 854, 103, 215]};
+  const COUNTRY = {"labels": ["Nigeria", "Colombia", "Argentina", "Croatia", "Norway", "Senegal", "Austria", "Portugal", "Ivory Coast", "Cameroon", "Algeria", "Belgium"], "per90": [0.209, 0.181, 0.143, 0.141, 0.138, 0.133, 0.132, 0.128, 0.127, 0.127, 0.123, 0.123], "n": [27, 21, 69, 35, 26, 46, 35, 57, 31, 25, 27, 41], "overall": 0.112};
   const TEST = [[1.946, 1.89], [1.099, 1.24], [1.792, 1.72], [1.099, 1.057], [1.946, 1.781], [1.609, 1.468], [1.792, 1.862], [1.099, 1.365], [1.609, 1.601], [2.079, 2.135], [1.609, 1.845], [1.099, 1.595], [1.609, 1.627], [1.386, 1.692], [1.099, 1.276], [2.197, 1.813], [1.386, 1.481], [2.303, 1.893], [1.099, 1.18], [1.099, 0.933], [1.609, 1.756], [2.303, 2.006], [1.609, 1.3], [2.565, 2.268], [1.099, 1.244], [1.609, 1.516], [1.609, 1.704], [1.099, 1.035], [1.386, 1.311], [2.398, 1.994], [1.386, 1.996], [1.386, 1.609], [1.386, 1.531], [2.303, 1.968], [2.303, 2.157], [1.792, 1.175], [1.099, 1.431], [2.303, 2.346], [1.792, 1.841], [1.792, 1.644], [1.946, 1.742], [1.099, 1.269]];          // [actual, predicted] in log(np_goals + 1) space, held-out test set
   const MODELS = ['Lasso', 'Linear Reg.', 'XGBoost', 'Neural Net', 'LightGBM', 'CatBoost', 'Random Forest', 'Decision Tree'];
   const RMSE = [0.249, 0.251, 0.277, 0.292, 0.297, 0.300, 0.330, 0.339];
@@ -331,6 +339,16 @@
       plugins: { tooltip: { callbacks: { label: i => `${i.parsed.y.toFixed(2)} goals per player (n=${POS.n[i.dataIndex]})` } } },
       scales: { x: { grid: { display: false }, ticks: { color: C.text } },
                 y: { title: { display: true, text: 'Mean non-penalty goals' } } } }
+  });
+
+  // ---- Goals per 90 by country ----
+  new Chart(document.getElementById('countryChart'), {
+    type: 'bar',
+    data: { labels: COUNTRY.labels, datasets: [{ data: COUNTRY.per90, backgroundColor: C.blue, borderRadius: 3, borderSkipped: false, maxBarThickness: 40 }] },
+    options: { ...base,
+      plugins: { tooltip: { callbacks: { label: i => `${i.parsed.y.toFixed(3)} per 90 (${COUNTRY.n[i.dataIndex]} players)` } } },
+      scales: { x: { grid: { display: false }, ticks: { color: C.text, autoSkip: false, maxRotation: 45 } },
+                y: { title: { display: true, text: 'Non-penalty goals per 90' } } } }
   });
 
   // ---- RMSE ----
