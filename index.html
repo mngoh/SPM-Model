@@ -286,7 +286,7 @@
 
 <script>
   // ---- Shared styling ----
-  const C = { blue: '#1d4ed8', blueFaded: 'rgba(37,99,235,0.28)', bluePoint: 'rgba(37,99,235,0.75)', red: '#ef4444',
+  const C = { blue: '#2563eb', blueFaded: 'rgba(37,99,235,0.4)', bluePoint: 'rgba(37,99,235,0.75)', red: '#ef4444',
               text: '#f2f2f2', muted: '#8b8b8b', border: '#262626', surface: '#121212' };
   Chart.defaults.color = C.muted;
   Chart.defaults.borderColor = C.border;
@@ -299,6 +299,8 @@
   Chart.defaults.plugins.tooltip.bodyColor = C.muted;
   Chart.defaults.plugins.legend.display = false;
   const base = { responsive: true, maintainAspectRatio: false };
+  // Outlined bars: transparent fill, coloured 1.5px border
+  const bar = c => ({ backgroundColor: 'transparent', borderColor: c, borderWidth: 1.5, borderRadius: 3, borderSkipped: false });
 
   // ---- Data (computed from data/22_final.csv and notebooks/2_ML_Models.ipynb) ----
   const TARGET = {"labels": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15+"], "counts": [1470, 487, 269, 146, 115, 82, 50, 40, 30, 24, 21, 8, 10, 6, 4, 24], "kept_from": 2};
@@ -314,7 +316,7 @@
   // ---- Target distribution ----
   new Chart(document.getElementById('targetChart'), {
     type: 'bar',
-    data: { labels: TARGET.labels, datasets: [{ data: TARGET.counts, backgroundColor: TARGET.counts.map((_, i) => i < TARGET.kept_from ? C.blueFaded : C.blue), borderRadius: 3, borderSkipped: false }] },
+    data: { labels: TARGET.labels, datasets: [{ data: TARGET.counts, ...bar(TARGET.counts.map((_, i) => i < TARGET.kept_from ? C.blueFaded : C.blue)) }] },
     options: { ...base,
       plugins: { tooltip: { callbacks: { title: i => `${i[0].label} non-penalty goals`, label: i => `${i.parsed.y.toLocaleString()} players${i.dataIndex < TARGET.kept_from ? ' (excluded)' : ''}` } } },
       scales: { x: { grid: { display: false }, title: { display: true, text: 'Non-penalty goals' } },
@@ -324,7 +326,7 @@
   // ---- Correlations ----
   new Chart(document.getElementById('corrChart'), {
     type: 'bar',
-    data: { labels: CORR.labels, datasets: [{ data: CORR.r, backgroundColor: C.blue, borderRadius: 3, borderSkipped: false }] },
+    data: { labels: CORR.labels, datasets: [{ data: CORR.r, ...bar(C.blue) }] },
     options: { ...base, indexAxis: 'y',
       plugins: { tooltip: { callbacks: { label: i => `r = ${i.parsed.x.toFixed(2)}` } } },
       scales: { x: { min: 0, max: 1, title: { display: true, text: 'Pearson r with non-penalty goals' } },
@@ -334,7 +336,7 @@
   // ---- Goals by position ----
   new Chart(document.getElementById('posChart'), {
     type: 'bar',
-    data: { labels: POS.labels, datasets: [{ data: POS.means, backgroundColor: C.blue, borderRadius: 3, borderSkipped: false, maxBarThickness: 56 }] },
+    data: { labels: POS.labels, datasets: [{ data: POS.means, ...bar(C.blue), maxBarThickness: 56 }] },
     options: { ...base,
       plugins: { tooltip: { callbacks: { label: i => `${i.parsed.y.toFixed(2)} goals per player (n=${POS.n[i.dataIndex]})` } } },
       scales: { x: { grid: { display: false }, ticks: { color: C.text } },
@@ -345,7 +347,7 @@
   new Chart(document.getElementById('countryChart'), {
     type: 'bar',
     data: { labels: COUNTRY.labels, datasets: [
-      { type: 'bar', data: COUNTRY.ratio, backgroundColor: C.blue, borderRadius: 3, borderSkipped: false, maxBarThickness: 40, order: 2 },
+      { type: 'bar', data: COUNTRY.ratio, ...bar(C.blue), maxBarThickness: 40, order: 2 },
       { type: 'line', label: 'Overall rate', data: COUNTRY.labels.map(() => 1), borderColor: C.red, borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, order: 1 } ] },
     options: { ...base,
       plugins: { tooltip: { filter: i => i.datasetIndex === 0, callbacks: { label: i => `${i.parsed.y.toFixed(2)}x the overall rate (${COUNTRY.per90[i.dataIndex]} per 90, ${COUNTRY.n[i.dataIndex]} players)` } } },
@@ -356,7 +358,7 @@
   // ---- RMSE ----
   new Chart(document.getElementById('rmseChart'), {
     type: 'bar',
-    data: { labels: MODELS, datasets: [{ data: RMSE, backgroundColor: modelColor, borderRadius: 3, borderSkipped: false }] },
+    data: { labels: MODELS, datasets: [{ data: RMSE, ...bar(modelColor) }] },
     options: { ...base, indexAxis: 'y',
       plugins: { tooltip: { callbacks: { label: i => `RMSE ${i.parsed.x.toFixed(3)}` } } },
       scales: { x: { min: 0.20 }, y: { grid: { display: false }, ticks: { color: C.text } } } }
@@ -392,7 +394,7 @@
   // ---- R² ----
   new Chart(document.getElementById('r2Chart'), {
     type: 'bar',
-    data: { labels: MODELS, datasets: [{ data: R2, backgroundColor: modelColor, borderRadius: 3, borderSkipped: false }] },
+    data: { labels: MODELS, datasets: [{ data: R2, ...bar(modelColor) }] },
     options: { ...base, indexAxis: 'y',
       plugins: { tooltip: { callbacks: { label: i => `R² ${i.parsed.x.toFixed(3)}` } } },
       scales: { x: { min: 0.3, max: 0.75 }, y: { grid: { display: false }, ticks: { color: C.text } } } }
